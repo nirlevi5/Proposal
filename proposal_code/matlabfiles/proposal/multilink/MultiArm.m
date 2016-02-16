@@ -47,11 +47,38 @@ classdef MultiArm < handle
             obj.obstacles.pose      = task.object_position(1:2);
             obj.obstacles.vertexes  = repmat(task.object_position(1:2)',[4,1]) + [-0.05 0.05 0.05 -0.05 ; 0.05 0.05 -0.05 -0.05]'; 
             
-            % generate theoretic path
-            plan = obj.FindAttracivePath(task);
-            % search for obstruct arms
-            plan = obj.ValidatePlan(plan);
+            queue(1).task = task;
             
+            while (length(queue)>=1 )
+                % generate theoretic path
+                plan = obj.FindAttracivePath(queue(1).task);
+                % check if no arms obstruct the plan
+                plan = obj.ValidatePlan(plan);
+                if plan.solution
+                    % execute plan
+                    obj.plotPlan(plan);
+                    % update new configuration
+                    for ii = 1:obj.num_of_arms
+                        obj.arms(ii).joints_value = plan.last_arms_state(ii).value;
+                    end
+                    % remove task from queue
+                    queue(1) = [];
+                else
+                    % generate sub task
+                    plan.path = flipud(plan.path);
+                    plan.pre_path = [];
+                    plan = obj.ValidatePlan(plan);
+                
+                    if plan.armID == 1
+                        subtask.task.armID           = 2;
+                    else
+                        subtask.task.armID           = 1;
+                    end
+                    subtask.task.target_joints_value    = plan.last_arms_state(subtask.task.armID).value;
+                    queue = [subtask ; queue];
+                end
+            
+            end
             obj.plan = plan;
         end
        
@@ -174,7 +201,11 @@ classdef MultiArm < handle
             for ii = 1:obj.num_of_arms
                 % initiate current state so later it will be updated in each
                 % iteration
-                arms_current_state(ii).value = obj.arms(ii).joints_value; 
+                if ii == plan.armID
+                    arms_current_state(ii).value = plan.path(1,:);
+                else
+                    arms_current_state(ii).value = obj.arms(ii).joints_value;
+                end
                 % initiate an apply before param. This holds a subpath data for
                 % all of the arms for each execution path iteration
 %                 plan.pre_path(ii).arm(1:obj.num_of_arms).path = [];
@@ -203,6 +234,7 @@ classdef MultiArm < handle
                 [s_min_d,ind_min_d] = sort(mindistance);
                 if s_min_d(1)>obj.max_proximity
                     % step ii of execution path has no collision
+                    arms_current_state(plan.armID).value        = plan.path(ii,:);
                     plan.pre_path(ii).arm = [];
                     continue; % go to step ii+1 of execution path
                 end
@@ -215,13 +247,16 @@ classdef MultiArm < handle
                 subplan                                     = obj.FindRepulsivePath(newtask);
                 if subplan.solution
                     arms_current_state(ind_min_d(1)).value      = subplan.path(end,:);
+                    arms_current_state(plan.armID).value        = plan.path(ii,:);
                     plan.pre_path(ii).arm(ind_min_d(1)).path    = subplan.path;
                 else
-                    plan.solution = subplan.solution;
+                    plan.solution = 0;
                     return
                 end
                 
             end
+            plan.solution = 1;
+            plan.last_arms_state = arms_current_state;
         end
         
        
@@ -528,7 +563,7 @@ classdef MultiArm < handle
                 q(ii,:) = obj.arms(ii).joints_value;
             end
             obj.plotAllArms();
-            plot(obj.obstacles.pose(1),obj.obstacles.pose(2),'om','MarkerSize',15);
+            plot(obj.obstacles.pose(1),obj.obstacles.pose(2),'om','MarkerSize',15,'Linewidth',3);
             % plot each step of the plan
             for ii = 1:size(plan.path,1)
                 if size(plan.pre_path(ii).arm,1)==0

@@ -41,7 +41,7 @@ task.target_joints_value    = [1 -1];
 task.object_position        = ma.arms(task.armID).FK(task.target_joints_value);
 
 ma.GenerateMotionPlan(task);
-ma.plotPlan
+% ma.plotPlan
 % figure(4)
 % load('Cspace.mat')
 % contour3(J11,J12,Z,100)

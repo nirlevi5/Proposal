@@ -47,11 +47,39 @@ classdef MultiArm < handle
             obj.obstacles.pose      = task.object_position(1:2);
             obj.obstacles.vertexes  = repmat(task.object_position(1:2)',[4,1]) + [-0.05 0.05 0.05 -0.05 ; 0.05 0.05 -0.05 -0.05]'; 
             
-            % generate theoretic path
-            plan = obj.FindAttracivePath(task);
-            % search for obstruct arms
-            plan = obj.ValidatePlan(plan);
+            queue(1).task = task;
             
+            while (length(queue)>=1 )
+                % generate theoretic path
+                plan = obj.FindAttracivePath(queue(1).task);
+                % check if no arms obstruct the plan
+                plan = obj.ValidatePlan(plan);
+                if plan.solution
+                    % execute plan
+                    obj.plotPlan(plan);
+                    % update new configuration
+                    for ii = 1:obj.num_of_arms
+                        obj.arms(ii).joints_value = plan.last_arms_state(ii,:);
+                    end
+                    % remove task from queue
+                    queue(1) = [];
+                else
+                    % generate sub task
+                    plan.path = flipud(plan.path);
+                    plan.pre_path = [];
+                    plan = obj.ValidatePlan(plan);
+                
+                    if plan.armID == 1
+                        subtask.armID           = 2;
+                    else
+                        subtask.armID           = 1;
+                    end
+                    task.target_joints_value    = plan.last_arms_state(subtask.armID,:);
+                    task.object_position        = ma.arms(task.armID).FK(task.target_joints_value);
+
+                end
+            
+            end
             obj.plan = plan;
         end
        
@@ -174,7 +202,11 @@ classdef MultiArm < handle
             for ii = 1:obj.num_of_arms
                 % initiate current state so later it will be updated in each
                 % iteration
-                arms_current_state(ii).value = obj.arms(ii).joints_value; 
+                if ii == plan.armID
+                    arms_current_state(ii).value = plan.path(1,:);
+                else
+                    arms_current_state(ii).value = obj.arms(ii).joints_value;
+                end
                 % initiate an apply before param. This holds a subpath data for
                 % all of the arms for each execution path iteration
 %                 plan.pre_path(ii).arm(1:obj.num_of_arms).path = [];
@@ -214,12 +246,17 @@ classdef MultiArm < handle
                 newtask.repulsiveArm.state                  = plan.path(ii,:);
                 subplan                                     = obj.FindRepulsivePath(newtask);
                 if subplan.solution
-                arms_current_state(ind_min_d(1)).value      = subplan.path(end,:);
-                plan.pre_path(ii).arm(ind_min_d(1)).path    = subplan.path;
+                    arms_current_state(ind_min_d(1)).value      = subplan.path(end,:);
+                    arms_current_state(plan.armID).value        = plan.path(ii,:);
+                    plan.pre_path(ii).arm(ind_min_d(1)).path    = subplan.path;
                 else
-                    plan.solution = 
+                    plan.solution = 0;
+                    return
+                end
                 
             end
+            plan.solution = 1;
+            plan.last_arm_state = arms_current_state;
         end
         
        
