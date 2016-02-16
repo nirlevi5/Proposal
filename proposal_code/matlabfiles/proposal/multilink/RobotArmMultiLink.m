@@ -32,7 +32,7 @@ classdef RobotArmMultiLink < handle
             
             obj.joints_lim      = joints_limits;
             obj.hed             = [];
-            obj.half_link_width = 0.025;
+            obj.half_link_width = 0.01;
             
             obj.update_branching_matrix();
         end

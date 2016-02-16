@@ -2,6 +2,7 @@ classdef MultiArm < handle
     properties
         arms
         num_of_arms
+        obstacles
         current_joints_state
         plan
         arms_sequence
@@ -19,7 +20,8 @@ classdef MultiArm < handle
             obj.arms            = arms;
             obj.num_of_arms     = length(arms);
             obj.max_proximity   = 0.05; 
-            obj.joints_res      = 0.01;
+            obj.joints_res      = 0.05;
+%             obj.obstacle_map   = [];
             %% generate connectivity graph
             % initiate connctivity graph
             for ID = 1:obj.num_of_arms
@@ -41,6 +43,9 @@ classdef MultiArm < handle
         end
         
         function  GenerateMotionPlan(obj,task)
+            % update collision map
+            obj.obstacles.pose      = task.object_position(1:2);
+            obj.obstacles.vertexes  = repmat(task.object_position(1:2)',[4,1]) + [-0.05 0.05 0.05 -0.05 ; 0.05 0.05 -0.05 -0.05]'; 
             
             % generate theoretic path
             plan = obj.FindAttracivePath(task);
@@ -113,9 +118,14 @@ classdef MultiArm < handle
                 branching = repmat(plan.path(end,:) , [obj.arms(plan.armID).branching_factor,1]) ...
                     + obj.joints_res * obj.arms(plan.armID).branching_matrix;
                 
-                % calc heuristics as the distance between the arms
+                % calc heuristics as min distance between arms
                 for jj = 1:size(branching,1)
-                    h(jj) = obj.calcArmsMinDistance(plan.armID,task.repulsiveArm.id,branching(jj,:),task.repulsiveArm.state);
+                    if obj.ArmArmCollisionCheck(plan.armID,task.repulsiveArm.id,branching(jj,:),task.repulsiveArm.state)
+                        h(jj) = 0;
+                    else
+                        % calculate min distance
+                        h(jj) = obj.calcArmsMinDistance(plan.armID,task.repulsiveArm.id,branching(jj,:),task.repulsiveArm.state); ;
+                    end
                 end
 
                 % sort the heuristics by decending order ()
@@ -130,9 +140,24 @@ classdef MultiArm < handle
                         continue;
                     end
                     
+                    % check for collision with the object
+                    flag = obj.ArmObsCollisionCheck(plan.armID,1,branching(des_ind(ii),:));
+                    if flag
+                        continue
+                    end
+                        
                     % no joints limit violation
                     % execute
-                    plan.path(end+1,:) = branching(des_ind(ii),:);
+                    if des_h(ii) == 0 % state in collision
+                        return
+                    elseif all(plan.path(end,:) == branching(des_ind(ii),:)) % the same state as the previuse
+                        % solution found
+                        plan.solution = 1;
+                        break;
+                    else
+                        plan.path(end+1,:) = branching(des_ind(ii),:);
+                    end
+                    
                     if des_h(ii)>obj.max_proximity
                         % solution found
                         plan.solution = 1;
@@ -143,7 +168,9 @@ classdef MultiArm < handle
         end
        
         function plan = ValidatePlan(obj,plan)
-            
+            % validate the motion described in plan
+            % apply a repulsive function on each step that cause a
+            % collision
             for ii = 1:obj.num_of_arms
                 % initiate current state so later it will be updated in each
                 % iteration
@@ -163,12 +190,13 @@ classdef MultiArm < handle
                         continue
                     end
                     % collision check
-                    collision(jj) = obj.CollisionCheck(plan.armID,jj,plan.path(ii,:),arms_current_state(jj).value);
-                    if collision(jj) == 1 
+                    if obj.ArmArmCollisionCheck(plan.armID,jj,plan.path(ii,:),arms_current_state(jj).value)
                         mindistance(jj) = 0;
                     else
+                        % calculate min distance
                         mindistance(jj) = obj.calcArmsMinDistance(plan.armID,jj,plan.path(ii,:),arms_current_state(jj).value) ;
                     end
+                     
                 end
                 
                 % get the arm with the minimal distance
@@ -185,8 +213,11 @@ classdef MultiArm < handle
                 newtask.repulsiveArm.id                     = plan.armID;
                 newtask.repulsiveArm.state                  = plan.path(ii,:);
                 subplan                                     = obj.FindRepulsivePath(newtask);
+                if subplan.solution
                 arms_current_state(ind_min_d(1)).value      = subplan.path(end,:);
                 plan.pre_path(ii).arm(ind_min_d(1)).path    = subplan.path;
+                else
+                    plan.solution = 
                 
             end
         end
@@ -299,7 +330,7 @@ classdef MultiArm < handle
             plan.arms(2).path = slaveArmPath;
         end
         
-        function flag = CollisionCheck(obj,masterArmID,slaveID,masterArm_q,slaveArm_q)
+        function flag = ArmArmCollisionCheck(obj,masterArmID,slaveID,masterArm_q,slaveArm_q)
             % returns 1 if collision exist between two arms
             if nargin>4
                 L1 = obj.arms(masterArmID).calcLinksVertexs(masterArm_q);
@@ -324,6 +355,28 @@ classdef MultiArm < handle
             end
             
         end
+        
+        function flag = ArmObsCollisionCheck(obj,ArmID,ObsID,Arm_q)
+            % returns 1 if collision exist between arm and obstacle
+            if nargin>3
+                L1 = obj.arms(ArmID).calcLinksVertexs(Arm_q);
+                L2 = obj.obstacles(ObsID).vertexes;
+            else
+                L1 = obj.arms(ArmID).calcLinksVertexs();
+                L2 = obj.obstacles(ObsID).vertexes;
+            end
+            
+            for ii = 1:obj.arms(ArmID).number_of_links;
+                if sat(L1(:,:,ii)',L2)
+                    flag = 1;
+                    return;
+                else
+                    flag = 0;
+                end
+            end
+            
+        end
+        
         
         function arms_sequence = calc_arms_sequence(obj,task)
             Initial_pose    = task.init;
@@ -463,36 +516,41 @@ classdef MultiArm < handle
             end
         end
         
-        function plotPlan(obj)
+        function plotPlan(obj,plan)
+            
+            if nargin<2
+                plan=obj.plan;
+            end
             
             for ii=1:obj.num_of_arms
                 q(ii,:) = obj.arms(ii).joints_value;
             end
             obj.plotAllArms();
-            
+            plot(obj.obstacles.pose(1),obj.obstacles.pose(2),'om','MarkerSize',15);
             % plot each step of the plan
-            for ii = 1:size(obj.plan.path,1)
-                if size(obj.plan.pre_path(ii).arm,1)==0
+            for ii = 1:size(plan.path,1)
+                if size(plan.pre_path(ii).arm,1)==0
                     % this is a valid move, no pre path exist
-                    q(obj.plan.armID,:)=obj.plan.path(ii,:);
+                    q(plan.armID,:)=plan.path(ii,:);
                     obj.plotAllArms(q);
                     pause(0.1);
                     continue; 
                 end
+                % plot the pre_path of step ii
                 ind = 1;
                 update = 1;
                 while (update)
                     update = 0;
                     for jj = 1:obj.num_of_arms
                         % ignore the leading arm
-                        if jj==obj.plan.armID
+                        if jj==plan.armID
                             continue;
                         end
                         
-                        if size(obj.plan.pre_path(ii).arm(jj).path,1)<ind
+                        if size(plan.pre_path(ii).arm(jj).path,1)<ind
                             continue;
                         else
-                            q(jj,:) = obj.plan.pre_path(ii).arm(jj).path(ind,:);
+                            q(jj,:) = plan.pre_path(ii).arm(jj).path(ind,:);
                             update = 1;
                         end
                     end
@@ -502,15 +560,10 @@ classdef MultiArm < handle
                     end
                     ind = ind + 1;
                 end
-
+                q(plan.armID,:)=plan.path(ii,:);
+                obj.plotAllArms(q);
+                pause(0.1);
             end
-            %             for ii = 1:length(obj.plan.arms(1).path) % path index
-%                 for jj = 1:length(obj.plan.arms) % arm index
-%                     obj.arms(obj.plan.arms(jj).ID).plotArm(obj.plan.arms(jj).path(ii));
-%                     pause(0.3);
-%                 end
-%             end
-            
         end
         
         function plot_transfer_points(obj,seq_ind)

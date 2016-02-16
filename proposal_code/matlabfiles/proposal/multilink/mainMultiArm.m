@@ -34,12 +34,14 @@ arms(end+1)     = RobotArmMultiLink(links_length,joints_value,base_pose,joints_l
 ma = MultiArm(arms);
 ma.plotAllArms;
 
+
 % iniitiate task
 task.armID                  = 1;
 task.target_joints_value    = [1 -1];
+task.object_position        = ma.arms(task.armID).FK(task.target_joints_value);
 
-% ma.GenerateMotionPlan(task);
-
+ma.GenerateMotionPlan(task);
+ma.plotPlan
 % figure(4)
 % load('Cspace.mat')
 % contour3(J11,J12,Z,100)
