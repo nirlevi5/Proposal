@@ -1,0 +1,181 @@
+\section{Methodology}
+%בפרק זה נעבור על הדרך להשגת מטרת המחקר כפי שהוצגה בהקדמה. מכיוון שמטרה זו הינה כללית עלינו להגדיר בצורה ספציפית מהן הבעיות אותן אנו מעוניינים לפתור ולאחר מכן מהם השלבים לפתרונן. לאורך הפרק אנו נעבור תחילה על ההנחות אשר על בסיסן נגדיר מהן הבעיות הפתוחות שאנו מתכוונים לפתור לאחר מכן נדון בדרישות המערכת ובאנליזה שיש לבצע עבור הצעת פתרון כך שבוף הפרק נעבור על הסימולציות והניסויים שנבצע ככלי לבדיקת הפתרון. 
+
+This chapter is about defining the research problems and the ways for solving it. Since the research target (as presented in chapter \ref{section:introduction}) is general, we have to define specifically what are the problems and how to find a solution. Throughout the chapter we will discuss over
+\begin{inparaenum}[\itshape a\upshape)]
+\item the definition that is used as a basis to define a research problems
+\item the system requirements for a solution
+\item the methods for analysing a solution 
+and
+\item the simulation/experiments that will evaluate a solution performance.
+\end{inparaenum} 
+%\begin{enumerate*}[label=(\alph*)]
+%\item the definition that is used as a basis to define an open problems
+%\item the system requirements for a solution
+%\item the methods for analysing a solution 
+%and
+%\item the simulation/experiments that will evaluate a solution performance.
+%\end{enumerate*} 
+
+ 
+
+
+\subsection{Research Problem Description}
+\label{section:problem_description}
+%על מנת להגדיר בצורה ברורה יותר מהן הבעיות אותן נפתור תחילה נגדיר את הנחת הבסיס. אנו נשתמש בעובדה כי ברוב הזרועות התעשייתיות בסיס הזרוע הינו סטטי ולכן כשמדובר בקבוצה של זרועות המרחקים בין הבסיסים קבוע, עובדה זו מובילה אותנו להנחת הבסיס 
+%של המחקר
+
+In order to define more clearly what problems are we going to solve, first we will specify the research basic definition. We will use the fact that the majority of industrial robotic arms are statically based and so a group of arms have fixed distances between their bases. This fact leads us to the next definition:
+
+\begin{definition} \label{def:basic_def}
+A configuration set of robotic arms is given such that:
+\begin{enumerate}
+\item[a)] The arms links length, joint orientation and joint limitation is known.
+\item[b)] The arms base position is known.
+\end{enumerate}
+\end{definition}
+
+To complete a problem description, we will have to specify what objects are we going to use and the action which the arms will apply. The overall package of arms, objects and actions are the building stones of the next 4 problems:
+
+\subsubsection*{Problem 1: Pick and Place of Single object by a Set of Robotic Arms}
+%כאן, תיאור הבעייה נתון ע"י אוסף של זרועות רובוטיות ביחד עם אובייקט יחיד כך שהמטרה היא להעביר את האובייקט ממיקום התחלתי למיקום סופי מוגדרים מראש. ומכיוון שניתן להעביר את האובייקט ע"י הזרועות בלבד לנסח את סט ההנחות הבא:
+%סט ההנחות הבא:
+%קונפיגורציית הזרועות נתונה
+% המיקום ההתחלתי והסופי של האובייקט ידועים וממוקמים בסביבת עבודה של זרוע אחת לפחות 
+ 
+Here, the problem description is given by a set of robotic arms together with a single object such that the task is to move the object from its initial position to a predefined goal. Knowing that only arms are able to manipulate an object we can define the next assumptions:
+\begin{itemize}
+\item The initial configuration of the arms set is known.
+\item The initial and final position of the object in known and located at a workspace belongs to (at list) one of the arms.
+\item Only a single arm can grasp the object at a time. 
+\item There are two types of obstacles: the arms themselves and the object.
+\end{itemize}
+In practice the difficulty arise when a single arm is not capable of completing the task alone and the solution gets a form of series of arms preforming pick and place operation (i.e transferring the object between themselves). This problem expose a number of open question:
+\begin{enumerate}
+\item What is the sequence of arms which will complete such a task.
+\item What are the positions along the object path where a transfer happens.
+\item What is the collision free trajectory of each arm throughout the sequence.
+\end{enumerate}
+
+
+\subsubsection*{Problem 2: Pick and Place of Multiple objects Simultaneously }
+This problem expands problem 1 above such that the assignment is to move multiple objects from one place to a predefined goal using robotic arms only. This problem adds complexity to the overall system and expose the next assumptions:
+\begin{itemize}
+\item The initial configuration of the arms set is known.
+\item The initial and final position of all of the objects in known and located at a workspace belongs to (at list) one of the arms.
+\item The final configuration of all of the objects is defined without collisions.
+\item A single arm cannot manipulate more than one object simultaneously.
+\item Only a single arm can grasp an individual object at a time. 
+\item There are two types of obstacles: the arms themselves and the objects.
+\end{itemize}
+
+%במבט ראשון ניתן לפתור בעייה זו בשני שלבים כך שדבר ראשון משתמשים בפתרון של בעיה 1 עבור כל אובייקט בנפרד ולאחר מכן ניתן לתזמן את סדר התנועה כך שלא יפגעו ההנחות. פתרון מסוג זה אומנם אפשרי אבל אינו מנצל את מלוא היכולות של המערכת העשויים להביא לפתרון מהיר יותר ולכן אנו נשארים עם אותן שאלות פתוחות כמו אלו שבבעיה 1.
+
+At first look, this problem can be solved using \textit{prioritize planning} principle; a solution for problem 1 is obtained for each object individually, next an execution scheduling process is maintained in order to avoid conflicts. Although it is an applicable solution it does not exploit the full capabilities of such a system which could handle a faster solution. Thus, the same open question as of problem 1 remained.
+
+\begin{enumerate}
+\item What is the sequence of arms that will manipulate each object.
+\item What are the positions along the each object path where a transfer happens.
+\item  What is the collision free trajectory of each arm throughout the sequences.
+\end{enumerate}
+  
+\subsubsection*{Problem 3: Pick and Place of Single/Multiple objects in Environments with Obstacles}
+This problem is defined the same way as problem 1 and 2 (i.e as a single or multi object manipulation problem), except that it defined with a new type of obstacles (static nor dynamic). Thus, the last assumption in each problem list is changing as follows:
+\begin{itemize}
+\item The obstacles geometry, type and position are known.
+\item There are three types of obstacles: The arms themselves, the objects and the environmental obstacles.
+\end{itemize} 
+The problem of cluttered environment adds complexity to the system such that it limits the motions of arms nor the positions of the transfer points. Hence, it is mainly affects the motion planning part of the total planning scheme. 
+
+\subsubsection*{Problem 4: Pick and Place of Single/Multiple objects with Non-Homogeneous Team of Robotic Arms }
+In the case of non-homogeneous teams of robotic arms we depict a the same problem of moving an object by a series of arms, only now there are different kind of arm. A warehouse management robot team would be a good application where heavy lifting robotic arms are needed for manipulating plates and a light lifting robotic arms are needed for loading/dispersing boxes on top of the plate. In contrast to the scenarios of problem 1-3, here we let a single arm to manipulate number of objects at a time (as long as the objects are organized in a way that enables to grasp). 
+
+
+
+
+\subsection{Algorithm Development}
+\label{section:algorithm_development}
+The problems described in section \ref{section:problem_description} have both decision and motion planning attributes. Each attribute standalone has a formal approach for solving it but lacks the other skills. Still, in order to solve these problems a 2 phases solution is required:
+
+\begin{enumerate}
+\item[(phase 1)] A high level task plan with a general purpose aimed to find a sequence of arms that will transfer an object from initial to goal positions. 
+The idea behind this phase is to find a series of "arm indexes" where the object is being passed from one arm to the next such that the last arm will place the object at it's target.
+
+
+\item[(phase 2)] A low level motion plan with a general purpose aimed to actually calculate a collision free trajectory for each step of the sequence. This is a more physical phase where the joint/work spaces of all of the arms are taken into account when calculating such a trajectory. The collision free refers for an arm that is transferring an object towards the next arm in the series (or toward the object's goal).
+
+\end{enumerate}
+
+The two phases are coupled due to the fact that any logical sequence of arms is based on geometric properties, for example any 2 following arms should share a gripping position of an object (in global coordinates) in order to transfer it between themselves. Having this fact in mind we understand that our algorithm first objective is to combine the two phases above by searching for applicable sequence it terms of kinematic feasibility. 
+Having a feasible sequence applies for being able to grasp an object at each step by a different arm, this is literally interpreted as a state where a configuration of a single arm was set. This notion leads us to our second algorithm objective which is to calculate a transition function between those states. Here, a transition function is a motion plan as detailed in phase 2 above and this is a key feature for success in such algorithm.
+
+
+As for our third objective is to be able to use this algorithm for a maximal number of arms nor objects. This is a high priority goal which makes a major contribution for such a scenarios. The trade off for large scale planning is of-course linked to computation time of the algorithm. From this perspective, We expect the weakness of the algorithm at the motion planning phase. As shown in section \ref{section:motion_planning} applying a \textit{centralized} motion planning method on a system with high number of DoF will doomed to time-out before having a solution.  
+
+
+\subsection{Algorithm Analysis}
+In order to validate the capabilities of any algorithm we should assess two major specifications:
+
+\begin{enumerate}
+
+\item[\textbf{Completeness}] This first parameter states for knowing whether a solution exist and as long as one exist if the algorithm can find it.
+
+\item[\textbf{Complexity}] This parameter has a direct link to solutions computation time. In most cases this parameter estimates the maximal operation to do in order to find a solution (if any). In practice complexity tend to over estimate the computation time of a solution which actually much more faster. Thus, to get a realistic point of view about how good is our algorithm we should compare its performance against other techniques.
+
+
+\end{enumerate}
+
+
+
+
+\subsection{Simulation and Experiments}
+
+Any design of planning algorithm that implements phase 1 and 2 of section \ref{section:algorithm_development}) will be tested under simulation and experiments, this in order to present its capabilities of displacing an object using multiple arms. The simulation code will be written under MATLAB environment which later on will be re-written with c++ in order to handle the experiments under GAZEBO/ROS framework. Although GAZEBO is a 3D simulation it holds behind a dynamics engine that calculates the physics of solid parts in terms of equation of motion and interacting forces (between two parts). This means GAZEBO can be used as a experiments environment where we can test scenarios consist of as many robot arms as we need. 
+
+The objective of these simulation is to preform a parametric inquiry which aimed to check the influence of a single parameter on the overall performance. The parameters that interesting us are as follows:
+
+\begin{enumerate}
+\item The number of robotic arms in a setup.
+\item The total percentage of the shared workspace of an arm.
+\item The number of joints/links having a single arm.
+\end{enumerate}
+
+
+Throughout the research our target is to apply this inquiry over the problems listed in \ref{section:problem_description}, thus for each of these problems we will have to build a different setup. Table \ref{table:experiment_setups} shows four different setups that will be tested on each problem. As detailed, column 2 represents the number of arms in a setup, column 3 represents the percentage of workspace shared between any couple of arms and column 4 represents the number of DoF in each arm.  
+\begin{table}[t]
+\begin{center}
+\begin{tabu} to 1\textwidth { | X[-2m c] || X[c m] | X[c m] | X[c m]| }
+%\begin{tabular}{ |c||c|c|c|  }
+ \hline
+ Setup Index & Number of Arms in a Setup & Percentage of Workspace Sharing & Number of DoF in a single arm\\ 
+ \hline
+ \#1         & 3                         & 20 & TBD \\
+ \#2         & 3                         & 80 & TBD \\
+ \#3         & 10                        & 20 & TBD \\
+ \#4         & 10                        & 80 & TBD \\
+ \hline
+\end{tabu}
+%\end{tabular}
+\caption{4 different setups to handle a parametric inquiry over the research problems}
+\label{table:experiment_setups}
+\end{center}
+\end{table}
+In fact, any change of a setup parameters will change the output of a planning algorithm such that we can estimate what are the factors that influencing on:
+\begin{enumerate}
+\item The total task operation time.
+\item The overall configuration size.
+\item The computation time.
+\item How many robotic arms can be used.
+\item What type of arms can be used.
+\item How "dens" the arms are located.
+\end{enumerate}
+
+Also, these setups are interpreted as both two or three dimensional problem, although in general a 2D problem may be more easy to solve it is not the often case here (See Appendix............). Still, the procedure for testing a problem in our research will be first simulation and experiments over a set of planner robotic arms and next simulation and experiments on a set of spatial robotic arms (The number of arms and the percentage of shared workspace remains the same). 
+
+%
+%\subsubsection*{Application of Problem 1}
+%This is our simplest problem which made to stand for a basic case that an algorithm will have to handle. Moreover, applying an algorithm that solves this case means a proof of concept for a more general approach. Thus, implementing a system setup as detailed in table \ref{table:experiment_setups} is a straight forward task. As the nature of simulation is to be held on computers the advantage here is to run as many simulations as we need 
+
+
+ToDo: explain position controlled
+  

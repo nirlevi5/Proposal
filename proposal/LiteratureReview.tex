@@ -1,0 +1,51 @@
+
+
+\section{Literature Review}
+
+This chapter presents a literature review on integrated task an motion planning for multi robot manipulators. Although initial studies have begun since the late 80th, this issue is still a matter of research in academia due to its enormous potential. Moreover as computers getting better implementing a multi-robot planner may be a valuable opportunity for the industry. Our intention is: 1) to get the full picture of these research field 2) to know the current state of the art, and 3) formalizing a standard approach for such a problem.
+
+
+\subsection{Motion Planning}
+\label{section:motion_planning}
+
+Todo: Motion planing for robotic arms
+
+Todo: Collision Checking
+
+We will start with a general description of the problem of planning for multi arms/agents. Lavalle \cite{lavalle2006planning} 
+has showed that motion planning problem formulation  is basically identical for single and multi robots, thus theoretically both have the same sampling based nor combinatorial search algorithms. Therefore scaling in the number of DoF is the only parameter affects the search process. For example, planning for 6 manipulators having 6 DoF each results in calculating motion plan for 36 DoF. Examine the most popular motion planners such as RRT \cite{lavalle1998rapidly}, PRM \cite{kavraki1996probabilistic} 
+or their more recent variants, we found that it is computationally high to solve (exponential in time). There are two main approaches for calculating motion planning in systems consist of high number of DoF. 
+
+
+\textit{Centralized Motion Planning} \\
+The first (and tentative) is the Centralized Motion Planning in which the total DoF are taking into account when searching for solution. Although computational power is needed (i.e takes time), its pros comes with complete and optimal solution if any.
+
+\textit{Decoupled Motion Planning} \\
+Alongside, the second approach Decoupled Motion Planning is more relevant in term of time consuming but lacks the completeness and optimality traits. As listed in \cite{smith2012dual,lavalle2006planning} decoupled planning is categorized into 3 main methods:
+	
+
+
+\begin{enumerate}
+  \item $Prioritized~Planning$ (PrP), 
+In this approach we sort all the robots by priority and planning an individual path for each robot. Each path is calculated based on the hierarchy obtained by the sorting procedure, such that higher rank is being calculating first. The collision free element acquired by treating the higher ranking robots as a moving obstacles.
+
+  \item $Fixed~Path~Coordination$ (FPC),
+This method is divided into 2 parts. At the first stage a path is planned for each individual robot as if its the only robot in the world so that in the second stage all of the paths a getting synchronize by means of timing in order to avoid collisions.
+
+  \item $Fixed~Roadmap~Coordination$ (FRC), 
+This strategy extends the FPC by assuming that each robot is guided by a roadmap. This yields a wider set of routes to achieve a single robot goal (instead of one in the FPC). Thus timing of the overall coordination may be more accessible.
+
+\end{enumerate}
+
+Works discussing motion planning for multiple robots often adopt one of the two approaches or else suggests a hybrid solution. A comparison between those approaches is given by Sanchez and Latombe \cite{comparecentralizeddecoupled} using the PRM planning scheme. In this work the authors examined a 36 DoF motion planning problem with each of the approaches described above and with the same path finding technique (SBL \cite{sanchez2002delaying}). Experimental results have shown that the decoupled planning has failed in 30 to 75\% of the trials and among the successful one the time differences had no significant change.
+
+
+\subsection{Task and Motion Planning}
+High and low level planning attributes are "must to have" when designing  an autonomous behaviour in robotics. Each attribute standalone has no capability of getting insights from the big picture of the world: high level plan has to be based on physical properties where low level plan has to be guided by some rule. As of writing this paper the current \textit{state~of~the~art} has no standard formulation for such a binding. For this reason, we aim to give our focus and effort in the area of combining task and motion planning.
+
+
+\subsubsection*{Task and Motion Planning for Multi Manipulators}
+Motion planning for multi-agent robots is an extensive research field consist of many variants. In this work we target to combine Task and Motion Planning for Multi Manipulators (TMPMM) mission. Maybe the main difficulty in such problems is planning for continuous and abstract configuration (states), this because motion planner are not comply with abstract parameters so as task planner don't comply with continuous parameters. TMPMM assignment are separated into 2: the ordinary pick and place task and the cooperative task. 
+
+An interesting work made by Koga and Latombe \cite{koga1994multi} describes a task of moving an object in a world built with obstacles using 3 arms having 6 DoF each. The solution suggested is based on calculating a path for the object while simultaneously check whether it can be grasped by one of the arms. If it reaches a configuration where the grasp is no more valid it search to grasp the object using a different arm and continues with the object's path. This way it's ensures the object continuous motion through a calculated cartesian path while being grasped.
+
