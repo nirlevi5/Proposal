@@ -14,13 +14,31 @@ corners.y = [0.4 0.4 -0.4 -0.4];
 patch(corners.x(:),corners.y(:),[1 1 1 1])
 
 % define the robot parameters and initiate the object
-links_length    = [0.3 0.3];
-joints_value    = [-1 1];
+links_length    = [0.6];
+joints_value    = [-1.5];
 joints_lim      = [ -pi  pi ];
-base_pose.x     = 0.5;
+base_pose.x     = 0.2;
 base_pose.y     = 0.4;
 base_pose.yaw   = -pi/2;
 arms            = RobotArmMultiLink(links_length,joints_value,base_pose,joints_lim);
+
+
+links_length    = [0.6];
+joints_value    = [0];
+joints_lim      = [ -pi  pi ];
+base_pose.x     = 0.4;
+base_pose.y     = -0.4;
+base_pose.yaw   = pi/2;
+arms(end+1)     = RobotArmMultiLink(links_length,joints_value,base_pose,joints_lim);
+
+
+links_length    = [0.6];
+joints_value    = [0];
+joints_lim      = [ -pi  pi ];
+base_pose.x     = 0.3;
+base_pose.y     = -0.4;
+base_pose.yaw   = pi/2;
+arms(end+1)     = RobotArmMultiLink(links_length,joints_value,base_pose,joints_lim);
 
 
 links_length    = [0.6];
@@ -31,17 +49,21 @@ base_pose.y     = -0.4;
 base_pose.yaw   = pi/2;
 arms(end+1)     = RobotArmMultiLink(links_length,joints_value,base_pose,joints_lim);
 
+
+
 ma = MultiArm(arms);
 ma.plotAllArms;
 
 
 % iniitiate task
 task.armID                  = 1;
-task.target_joints_value    = [1 -1];
+task.target_joints_value    = [1.5];
 task.object_position        = ma.arms(task.armID).FK(task.target_joints_value);
 
 ma.GenerateMotionPlan(task);
-% ma.plotPlan
+
+
+
 % figure(4)
 % load('Cspace.mat')
 % contour3(J11,J12,Z,100)
