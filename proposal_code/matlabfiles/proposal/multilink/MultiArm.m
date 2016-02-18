@@ -65,8 +65,11 @@ classdef MultiArm < handle
                     queue(1) = [];
                 else
                     % generate sub task
-                    plan.path = flipud(plan.path);
-                    plan.pre_path = [];
+                    plan.path               = flipud(plan.path);
+                    plan.solution           = 1;
+                    plan.sub_plan().plan    = [];
+                    plan.repulsiveArms      = [];
+
                     plan = obj.ValidatePlan(plan);
                 
                     if plan.armID == 1
@@ -92,7 +95,7 @@ classdef MultiArm < handle
             plan.solution           = 0; 
             plan.path               = obj.arms(task.armID).joints_value;
             plan.armID              = task.armID;
-            plan.sub_plan           = [];
+            plan.sub_plan().plan      = [];
             plan.repulsiveArms      = [];
             plan.initial_arms_state = [];
             
@@ -124,9 +127,11 @@ classdef MultiArm < handle
                     end
                     
                     % execution
-                    plan.path(end+1,:) = branching(asc_ind(ii),:);
+                    plan.path(end+1,:)          = branching(asc_ind(ii),:);
+%                     plan.sub_plan(end+1).plan   = [];
+                    
+                    % check if solution found
                     if norm(plan.path(end,:) - task.target_joints_value)<10e-10
-                        % solution found
                         plan.solution = 1;
                     end
                     break;
@@ -160,12 +165,12 @@ classdef MultiArm < handle
                     % check with each of the repulsive arms
                     h(ii) = 100000;
                     for jj = 1:length(task.repulsiveArms)
-                        if obj.ArmArmCollisionCheck(plan.armID,task.repulsiveArms(jj).id,branching(ii,:),task.repulsiveArms(jj).state)
+                        if obj.ArmArmCollisionCheck(plan.armID,task.repulsiveArms(jj).id,branching(ii,:),plan.initial_arms_state(task.repulsiveArms(jj).id).value);
                             h(ii) = 0;
                             break;
                         else
                             % calculate min distance
-                            h_temp = obj.calcArmsMinDistance(plan.armID,task.repulsiveArms(jj).id,branching(ii,:),task.repulsiveArms(jj).state); ;
+                            h_temp = obj.calcArmsMinDistance(plan.armID,task.repulsiveArms(jj).id,branching(ii,:),plan.initial_arms_state(task.repulsiveArms(jj).id).value);
                             if h_temp<h(ii)
                                 h(ii) = h_temp;
                             end
@@ -216,6 +221,10 @@ classdef MultiArm < handle
             % apply a repulsive function on each step that cause a
             % collision (or in proximity to a collision)
 
+            if plan.solution == 0
+                return
+            end
+            
             arms_current_state = plan.initial_arms_state;
             
            % go through each step of execution path and find a sub-plans for the other arms 
@@ -223,18 +232,23 @@ classdef MultiArm < handle
                 plan.sub_plan(ii).plan = [];
                 % check for proximity/collision of the moving arm with each of the other arms
                 for jj = 1:obj.num_of_arms
+                    dis = [];
                     % ignore same arm check 
                     if plan.armID == jj
-                        mindistance(jj) = 200;
-                        continue
+                        dis = 200;
                     end
                     
                     % ignore repulsive arm check 
                     for kk = 1: length(plan.repulsiveArms)
                         if plan.repulsiveArms(kk).id == jj
-                            mindistance(jj) = 100;
-                            continue;
+                            dis = 100;
+                            break;
                         end
+                    end
+                    
+                    if ~isempty(dis)
+                        mindistance(jj) = dis;
+                        continue;
                     end
                     
                     % calculate min distance
@@ -259,14 +273,15 @@ classdef MultiArm < handle
                 % ToDo - handle a case with 3 arms in collision
                 
                 % move the arm with the minimal distance
-                newtask.armID               = ind_min_d(1);
-                newtask.initial_arms_state  = arms_current_state;
-                  repulsiveArm.id           = plan.armID;
-                  repulsiveArm.state        = plan.path(ii,:);
-                newtask.repulsiveArms       = [plan.repulsiveArms ; repulsiveArm];
-                subplan                     = obj.FindRepulsivePath(newtask);
+                newtask.armID                               = ind_min_d(1);
+                    initial_arms_state                      = arms_current_state;
+                    initial_arms_state(plan.armID).value    = plan.path(ii,:);
+                newtask.initial_arms_state                  = initial_arms_state;
+                    repulsiveArm.id                         = plan.armID;
+                newtask.repulsiveArms                       = [plan.repulsiveArms ; repulsiveArm];
+                subplan                                     = obj.FindRepulsivePath(newtask);
                 
-                subplan = obj.ValidatePlan(subplan);
+                subplan = obj.ValidatePlan(subplan); % validation with the arms that didnt moved so far
                 if subplan.solution
                     arms_current_state                          = subplan.last_arms_state;
                     arms_current_state(plan.armID).value        = plan.path(ii,:);
