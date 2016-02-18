@@ -39,7 +39,6 @@ classdef MultiArm < handle
                 end
             end
             
-            
         end
         
         function  GenerateMotionPlan(obj,task)
@@ -72,12 +71,18 @@ classdef MultiArm < handle
 
                     plan = obj.ValidatePlan(plan);
                 
-                    if plan.armID == 1
-                        subtask.task.armID           = 2;
-                    else
-                        subtask.task.armID           = 1;
+                    for ii = 1:length(plan.sub_plan)
+                       if ~isempty(plan.sub_plan(ii).plan )
+                           subtask.task.armID = plan.sub_plan(ii).plan.armID;
+                       end
                     end
-                    subtask.task.target_joints_value    = plan.last_arms_state(subtask.task.armID).value;
+                    
+%                     if plan.armID == 1
+%                         subtask.task.armID           = 2;
+%                     else
+%                         subtask.task.armID           = 1;
+%                     end
+                    subtask.task.target_joints_value = plan.last_arms_state(subtask.task.armID).value;
                     queue = [subtask ; queue];
                 end
             
@@ -584,6 +589,11 @@ classdef MultiArm < handle
             tp = obj.plan.sequences(seq_ind).tp;
             obj.hed_tp = plot(tp(1,:),tp(2,:),'m*-','LineWidth',2);
         end
+        
+%         %% configuration space
+%         function generate_configuration_space(obj,res)
+%             
+%         end
     end % method
     
 end % class
