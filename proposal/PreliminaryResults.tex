@@ -1,24 +1,24 @@
 
 \section{Preliminary Results}
 
-
-\subsection{Case Study}
-For our case study we want to analyse the problem of pick and place a movable object throughout a workspace containing a number of robotic arms. We represent the world using a cylinder (i.e beer can) as an object together with \textit{m} grippers connected to \textit{m} statically based robotic arms which allowed to move on a planner surface (i.e table). An example of a case consist of 5 arms is represented in figure \ref{fig:case_study}.
-
+Over this chapter we will describe our proposed solution for the multi arms manipulation planning problem with reference to the first problem in \ref{section:problem_description}. A two dimensional illustration of such a problem is given in figure \ref{fig:case_study}. As introduced, this scenario is an example of a setup built by 5 statically based robotic arms together with an object displacement assignment. As detailed in section \ref{section:sim_and_exp} a similar scenarios varied by the number of arms, number of DoF and the percentage of shared workspace will be examined. Our algorithm objective is to give an automatic generation of a sequence of arms (and motions) for any given scenario/setup.
+ 
 \begin{figure}[htb]
 \includegraphics[scale=0.3,width=\textwidth]{5arms}
 \centering
-\caption{Case study Visualization} \label{fig:case_study}
+\caption{A setup illustration of 5 robotic arms together with a single object} 
+\label{fig:case_study}
 \centering
 \end{figure}
 
 
 \subsection{Problem Formulation}
-In this work our intention is to engage a single object pick and place problem using multi manipulators. We will handle the next symbols description for our problem statement. A manipulator will denoted as $A^{i}$ (the i'th parameter means the manipulator index) and an object as \textit{B}. We assume to have an overall of \textit{m} manipulators  $\mathcal{A}=\{A^{1},A^{2},\dots,A^i \dots,A^{m}\}$ and a single movable object. Furthermore we assume that each $A^i$ holds a workspace $W^{i}$ and a configuration space $C^{i}$ such that 
-the Forward Kinematics (FK) is mapping $W^i$ from $C^i$ ($FK:C^i\rightarrow W^i$). Hence, the feasible workspace of the object will be then $\mathcal{W}^B=\{W^{1} \cap W^{2} \cap \dots  W^{i} \dots \cap W^{m} \}$ the overall \textit{configuration space} of the arms will be $\mathcal{C}^A=\{C^{1} \times C^{2} \times \dots  C^{i}  \dots \times C^{m} \}$  and the corresponding arm \textit{workspace} $\mathcal{W}^A=\{W^{1} \times W^{2} \times \dots  W^{i}  \dots \times W^{m} \}$ . 
-
-
-For the purpose of consistency with \cite{koga1994multi,koga1992} we will presume the terminology of \textit{transit-path}, \textit{transfer-path} and \textit{manipulation-path} as follows:
+In this work our intention is to engage a single object pick and place problem using multi manipulators. We will handle the next symbols description for our problem statement. A manipulator will denoted as $A^{m}$ (the $m$'th parameter means the manipulator index) and an object as $B$. We assume to have an overall set of $M$ manipulators  $\mathcal{A}=\{A^{1},A^{2},\dots,A^m, \dots,A^{M}\}$ and a single movable object. Furthermore we assume that each $A^m$ is given by
+\begin{inparaenum}[\itshape a\upshape)]
+\item configuration space $C^{m}$ which represents the space of the arm joints value $c^{m} = \begin{bmatrix} q^{m,1} & q^{m,2} & \dots & q^{m,n} & \dots & q^{m,N} \end{bmatrix}^T$ where $q$ expresses a single DoF and $N$ as the number of DoF of an arm, and
+\item a workspace $W^m$ which represents the space of the arms gripper positions $w^m= \begin{bmatrix} x^m & y^m & \theta^m \end{bmatrix}^T$ in global coordinates.
+\end{inparaenum}  
+A mapping function of $W^m$ is given by the Forward Kinematics (FK) rule where $FK:C^m\rightarrow W^m$. Thus, the full state of the system is given by the configuration space of all of the arms $\mathcal{C}^A=\begin{bmatrix} C^1 & C^2 & \dots & C^m & \dots & C^M\end{bmatrix}^T$. Next, for keeping consistency with \cite{koga1994multi,koga1992} we will presume the terminology of \textit{transit}, \textit{transfer} and \textit{manipulation} paths as follows:
 \begin{itemize}
 \item[\textit{transit-path}] is a path that describes a motion of an empty arm (i.e not grasping any object). We will use this term to represent a path of an arm which avoids collision with other arms or actually moving toward an object in order to grasp it.
 
@@ -32,9 +32,11 @@ Next, consider the following problem input:
 
 \begin{itemize}
 \item A set of $m$ robotic arms. 
-\item Initial and goal positions of an object $B^{init},B^{goal} \in \mathcal{W}$
+\item Initial and goal positions of an object $B^{init},B^{goal}$
 \end{itemize}
-our objective is to find a \textit{manipulation-path} along which the object could be transferred according to input requirements. By definition each manipulation path is constructed by a sequence of \textit{Tspace} paths $\mathcal{T}^A=\langle T^{1},...,T^k, ...,T^n\rangle$ where $T^k \in \mathcal{W}^A$. In addition, each \textit{Tspace} path is derived by applying the FK rule on a sequence of $Cspace$ path. Therefore the corresponding \textit{Cspace} sequence of $\mathcal{T}^A$ resemble as $\mathcal{Q}^A=\langle Q^{1},...,Q^k, ...,Q^n\rangle$ where $Q^k \in \mathcal{C}^A$. This observation shows that any solution is obtained by calculating $\mathcal{Q}^A$ such that the equivalent $\mathcal{T}^A$ preforms a desired manipulation path. It is noteworthy that each $T^k$ is holding a $transit$ path for the entire arms (to operate in parallel) except one that holds a pair of $transit$ and $transfer$ paths for the actual manipulation.
+our objective is to find a \textit{manipulation-path} along which brings the object to its goal configuration. By definition each \textit{manipulation path} is constructed by a sequence of arms $\mathcal{S} = \langle s^1,s^2,\dots,s^k,\dots,s^K \rangle$ preforming a \textit{transfer paths}, where $s^k$ represent an arm index and $K$ is the number of arms in $\mathcal{S}$
+
+workspace paths $\mathcal{T}^A=\langle T^{1},...,T^k, ...,T^n\rangle$ where $T^k \in \mathcal{W}^A$. In addition, each \textit{Tspace} path is derived by applying the FK rule on a sequence of $Cspace$ path. Therefore the corresponding \textit{Cspace} sequence of $\mathcal{T}^A$ resemble as $\mathcal{Q}^A=\langle Q^{1},...,Q^k, ...,Q^n\rangle$ where $Q^k \in \mathcal{C}^A$. This observation shows that any solution is obtained by calculating $\mathcal{Q}^A$ such that the equivalent $\mathcal{T}^A$ preforms a desired manipulation path. It is noteworthy that each $T^k$ is holding a $transit$ path for the entire arms (to operate in parallel) except one that holds a pair of $transit$ and $transfer$ paths for the actual manipulation.
 
 
 \subsection{Planning Logic}
@@ -72,13 +74,13 @@ Recalling the work of Koga and Latombe \cite{koga1994multi}, it is shown that th
     \centering
     \begin{subfigure}[b]{0.4\textwidth}
         \includegraphics[width=\textwidth]{general_configuration}
-        \caption{general configuration}
+        \caption{general configuration \\ ~~}
         \label{fig:general_configuration}
     \end{subfigure}
     ~~~~
     \begin{subfigure}[b]{0.4\textwidth}
         \includegraphics[width=\textwidth]{generated_graph}
-        \caption{phase 1: generated graph}
+        \caption{phase 1: generated connectivity graph}
         \label{fig:generated_graph}
     \end{subfigure}  
     

@@ -55,7 +55,171 @@
 \input{Methodology}
 
 \newpage
-\input{PreliminaryResults}
+%\input{PreliminaryResults}
+
+\section{Preliminary Results}
+
+Over this chapter we will describe our proposed solution for the multi arms manipulation planning problem with reference to the first problem in \ref{section:problem_description}. A two dimensional illustration of such a problem is given in figure \ref{fig:case_study}. As introduced, this scenario is an example of a setup built by 5 statically based robotic arms together with an object displacement assignment. As detailed in section \ref{section:sim_and_exp} a similar scenarios varied by the number of arms, number of DoF and the percentage of shared workspace will be examined. Our algorithm objective is to give an automatic generation of a sequence of arms (and motions) for any given scenario/setup.
+ 
+\begin{figure}[htb]
+\includegraphics[scale=0.3,width=\textwidth]{5arms}
+\centering
+\caption{A setup illustration of 5 robotic arms together with a single object} 
+\label{fig:case_study}
+\centering
+\end{figure}
+
+
+\subsection{Problem Formulation}
+In this work our intention is to engage a single object pick and place problem using multi manipulators. We will handle the next symbols description for our problem statement. A manipulator will denoted as $A^{m}$ (the $m$'th parameter means the manipulator index) and an object as $B$. We assume to have an initial configuration given by $M$ manipulators  $\mathcal{A}=\{A^{1},A^{2},\dots,A^m, \dots,A^{M}\}$ together with a single movable object. Furthermore we assume that each $A^m$ is given by
+\begin{inparaenum}[\itshape a\upshape)]
+\item configuration space $C^{m}$ which represents the space of the arm joints value $c^{m} = \begin{bmatrix} q^{m,1} & q^{m,2} & \dots & q^{m,n} & \dots & q^{m,N} \end{bmatrix}^T$ where $q$ expresses a single DoF, and
+\item a workspace $W^m$ which represents the space of the arms gripper positions $w^m= \begin{bmatrix} x^m & y^m & \theta^m \end{bmatrix}^T$ in global coordinates.
+\end{inparaenum}  
+A mapping function of $W^m$ is given by the Forward Kinematics (FK) rule where $FK:C^m\rightarrow W^m$. Thus, the full state of the system is given by the configuration space of all of the arms $\mathcal{C}^A=\begin{bmatrix} C^1 & C^2 & \dots & C^m & \dots & C^M\end{bmatrix}^T$. Next, for keeping consistency with \cite{koga1994multi,koga1992} we will presume the terminology of \textit{transit}, \textit{transfer} and \textit{manipulation} paths as follows:
+\begin{itemize}
+\item[\textit{transit-path}] is a path that describes a motion of an empty arm (i.e not grasping any object). We will use this term to represent a path of an arm which avoids collision with other arms or actually moving toward an object in order to grasp it.
+
+\item[\textit{transfer-path}] is a path that describes a motion of an arm that is grasping an object within its gripper. We will use this term to represent a path of an arm that manipulates an object.
+
+\item[\textit{manipulation-path}]  is a sequence of alternating \textit{transmit} and \textit{transfer} paths. We will use this term to represent a sequence of arms the moves an object from initial to goal positions.
+\end{itemize}
+Next, consider the following problem input:
+\begin{itemize}
+\item A set of $m$ robotic arms. 
+\item Initial and goal positions of an object $B^{init},B^{goal}$
+\end{itemize}
+Our objective is to find a \textit{manipulation-path} along which brings the object to its goal configuration. By definition each \textit{manipulation path} is constructed by a sequence of arms $\mathcal{S} = \langle s^1,s^2,\dots,s^k,\dots,s^K \rangle$ preforming a \textit{transfer paths}, where $s^k$ represent an arm index and $K$ is the number of arms in $\mathcal{S}$. As each arm of the sequence is identified with a $transfer$ action it holds a configuration space path noted as $Q^k$ (where $Q^k \in C^{\mathcal{S}(k)}$). Now, we can define a sequence of paths $\mathcal{Q}$ for each step of $\mathcal{S}$ such that $\mathcal{Q} = \langle Q^1,Q^2\dots,Q^k,\dots,Q^K \rangle$. Here, each $Q^k$ represent a path for the corresponding arm $s^k$.  
+
+Practically, any execution of $\mathcal{S}$ "as is" may not be a accomplished due to the configuration of the other arms that possibly obstructing the path. As used in \cite{koga1994multi} a straight forward solution is obtained by moving the obstructing arms to a predefined non-obstructive location. This solution is less likely to succeed in 2D problem, especially on setups with high percentage value of the arms shared workspace. To overcome this issue any $Q^k$ path should be coordinated with a \textit{transmit} paths of the arms that are not transferring the object. Thus, in order to move a single arm a full state path is constructed as a subset of $C^A$. This eventually re-defines $Q^k$ with a second index such that $Q^k = \begin{bmatrix} Q^{k,1} & \dots & Q^{k,m} & \dots & Q^{k,M} \end{bmatrix}^T$ where $Q^{k,m}$ represent the $A^m$ path over the $k$ step. In summary, a solution is formulated with the following parameters:
+\begin{enumerate}
+\item A sequence of $K$ arms indexes $\mathcal{S}$ that represent which is the $transfer$ arm at each step.
+\item A sequence of $K$ paths $\mathcal{Q}$ that represent the motion of all the arms at each step of $\mathcal{S}$ (i.e the \textit{manipulation} path).  
+\end{enumerate}
+
+\subsection{High Level Planning}
+
+As detailed, a \textit{manipulation} path is built by a sequence of pick and place operations which in nature defines a sequence of subtasks. Thus, for convenience we will use the term subtask to denote the $k$'th procedure in $\mathcal{Q}$. Being able to solve each subtask separately simplifies the problem to a single arm pick and place solution. Still, this advantage makes no guaranties for solving the overall task unless a binding condition will be made between two following subtasks. Such a criteria is built by the \textit{transfer point} terminology.  
+
+We let $\mathcal{T}^B$ be the object absolute path from its initial to goal position. By definition, each subtask moves the object along a portion of $\mathcal{T}^B$. Hence, we can reason that $\mathcal{T}^B$ is built up by a sequence of \textit{work-space} paths each handled on the $k$'th subtask by a different arm, thus $\mathcal{T}^B = \langle T^{B,1},...,T^{B,k},...,T^{B,K} \rangle $. We will denote a \textit{transfer point} as a position where any $T^{B,K}$ starts or ends. Tentatively any \textit{transfer point} is located where an object is being picked or placed by a transferring arm. Any sequence $S$ consist of $K$ arms will have to pass through $K+1$ \textit{Transfer Points Series} ($TPS$) where the first and the last points represents the initial and final state of the object respectively. 
+
+As stated, a solution of the whole problem is made possible by using a solution for a subtask. The first key feature for success in such a case is given by the initial and final state of each subtask. We will employ the continuous pick and place property of a sequence to determine that a final configuration of any $k$ subtask will be the initial state of the $k+1$ subtask. This kind of property is perfectly match to a $TPS$ definition where an initial and final goal of an object are determined for each subtask. Still, we cant generate a sequence of subtasks by having a $TPS$ only. The second key feature that will fully define such a sequence is given by the definition of $\mathcal{S}$ that determine which is the transferring arm in any subtask. Thus, both $TPS$ and $\mathcal{S}$ are fully defines a sequence of subtasks in terms of the transferring arm and its initial and final configurations. 
+
+
+Our planning approach will be guided by the principle of integrating $\mathcal{S}$ and $TPS$ and their interpretation for subtasks. Hence, the algorithm will be structured into two phases where phase 1 will be aimed to find a logical combination of $\mathcal{S}$ and $TPS$, and phase 2 will be aimed to generate the corresponding subtasks and motions. It is noteworthy that this approach has the attributes as detailed in \ref{section:algorithm_development}.
+
+\subsubsection*{Planning Process}
+Recalling the work of Koga and Latombe \cite{koga1994multi}, it is shown that the object's global trajectory is the governing law when it comes to determine which is the grasping arm at any time. On the contrary we wish to give another perspective for the problem. Our guiding rule comes from shared workspaces of the arms. We are using the fact that any \textit{transfer point} is located only in one of the shared workspaces and consequently $\mathcal{T}^B$ must pass through them. 
+
+\begin{figure}[t]
+    \centering
+    \begin{subfigure}[b]{0.4\textwidth}
+        \includegraphics[width=\textwidth]{general_configuration}
+        \caption{general configuration \\ ~~}
+        \label{fig:general_configuration}
+    \end{subfigure}
+    ~~~~
+    \begin{subfigure}[b]{0.4\textwidth}
+        \includegraphics[width=\textwidth]{generated_graph}
+        \caption{phase 1: generated connectivity graph}
+        \label{fig:connectivity_graph}
+    \end{subfigure}  
+    
+    \begin{subfigure}[b]{0.4\textwidth}
+        \includegraphics[width=\textwidth]{task_assignment}
+        \caption{phase 2: Graph shortest path based on task properties }
+        \label{fig:task_assignment}
+    \end{subfigure}
+    ~~~~
+    \begin{subfigure}[b]{0.4\textwidth}
+        \includegraphics[width=\textwidth]{transfer_points}
+        \caption{phase 3: calculating transfer points}
+        \label{fig:transfer_points}
+    \end{subfigure}
+    \caption{Generating a sequence of arms and transfer points}\label{fig:animals}
+\end{figure}
+
+\subsubsection*{Search for Arm Sequence and Transfer Points}
+
+One of the key component of our work is find any pair of arms sharing together a part of their workspace such that $W^i \cap W^j \neq \emptyset$. This fact gives an insight for any transfer that could appear. Representing this data is made by using a graph where nodes represents an arm workspace and arcs represents a shared workspace between two arms. It means that a setup consist of $M$ arms is interpreted by a graph with $M$ nodes. Adding the graph arcs is applied by 
+going throw any possible combination of two arms and check whether together they share a part of their workspace. The generation of this graph will tentatively be called the \textit{connectivity graph}. An example illustration of such a graph is given in figure \ref{fig:connectivity_graph}.
+
+By attributing the initial and goal position of the object ($B^{init}$ and $B^{goal}$) to one of the arms work space we can reason about the starting and final node in the \textit{connectivity graph}. At this point, any graph search would give a solution with a form of a sequence of arms index $\mathcal{S} = \langle s^1,...,s^k,...,s^K \rangle$ connected by their shared workspaces (as shown in figure \ref{fig:task_assignment}) such that:
+\begin{equation}
+B^{init} \in W^{\mathcal{S}(1)}
+\end{equation}
+\begin{equation}
+B^{goal} \in W^{\mathcal{S}(K)}
+\end{equation}
+\begin{equation}
+W^{\mathcal{S}(k)}\cap W^{\mathcal{S}(k+1)}\neq \emptyset
+\end{equation}
+
+To complete the algorithm first phase we still have to determine the positions of the \textit{transfer point series}. As shown in figure \ref{fig:transfer_points} we can detect that any \textit{transfer point} is located in the shared work space of any two successive arms in $\mathcal{S}$. Still, we have to determine the exact position in the shared work space. One option is to use a linear programming method to minimize the total length accepted by connecting any pair of successive \textit{transfer point} by a straight line. In our implementation we choose a more straight forward method and selected the center of area of the shared workspace.
+
+
+\subsubsection*{The Search Algorithm}
+Algorithm \ref{alg:main-loop} shows the main procedure for generating a solution. Here, lines 1-5 represents the first phase of the algorithm for calculating the transfer arms and transfer points where line 6 represent the motion planing phase. 
+
+To generate an actual sequence that will apply the condition as in equations \eqref{eq:kinematic-feasible}-\eqref{eq:no-collision} we will have to go through the steps as written in algorithm \ref{alg:main-loop}. The rationale behind this algorithm is first to find a sequence of arms $S$ together with a series of $transfer~points$ $tp$ that will settle with equation \eqref{eq:consistant-sequence} (lines 1-5). Next, when $S$ and $tp$ was determined the guidelines for a motion plan was resolved, thus the second phase of the algorithm was launched (line 6) in order to calculate the sequence path that meet equations \eqref{eq:kinematic-feasible} and \eqref{eq:no-collision}. 
+
+\begin{algorithm}
+\caption{Main Loop} \label{alg:main-loop}
+\begin{algorithmic}  [1] % the [1] is for numbering
+\REQUIRE $B^{init},B^{goal},\mathcal{A}$
+\ENSURE $\mathcal{Q}$
+	\STATE $cg\leftarrow$ Generate $ConnectivityGraph\left(\mathcal{A}\right)$
+	\STATE $W^{first}\leftarrow $ find($W^{first}$ such that $B^{init}\in W^{first}$)
+	\STATE $W^{last}\leftarrow $ find($W^{last}$ such that $B^{goal}\in W^{last}$)
+	\STATE $\mathcal{S}\leftarrow$ BFS$( cg,W^{first},W^{last})$ // generate ws sequence
+	\STATE $TPS\leftarrow$ Calc $TransferPointsSeries\left(\mathcal{S},B^{init},B^{goal}\right)$
+\STATE $\mathcal{T}^A \leftarrow CalcSequenceTrajectory( S,tp,q^{init})$
+\end{algorithmic}
+\end{algorithm}
+
+
+\subsection{Multi Arm Motion Planning}
+As stated, at this stage our goal is to calculate the arms path for each phase of the \textit{manipulation-path} represented by $\mathcal{T}^A$. We assume that each phase includes the following input parameters (and that the initial configuration of the total arms is known):
+
+\begin{itemize}
+	\item Index of the moving arm.
+	\item Initial and goal positions of the arms gripper
+\end{itemize}
+
+These parameters directs us to find a motion planning solution for a multi robot system. As mentioned in section \ref{section:motion_planning} there is no formal strategy for calculating optimal nor complete trajectory for multi robots except for using \textit{centralized} methods that suffers from exponential complexity. The pattern that we will next describe is a method that is designed to find a solution oriented for robotic arms but may still be used for other systems. 
+
+The fact that a \textit{centralized} method includes complete and optimal attributes is that it can handle local minima's (same as A*). Lack in such feature resolved in having no reasoning when: robot 2 obstructs the path of robot 1 where actually robot 1 obstructs the path of robot 2 that should clear the path for robot 1. A simple illustration is shown in figure \ref{fig:initial_configuration} with a case of 2 robotic arms having 1 DoF each. The task here is to move arm \#1 to the dashed line. Trying to do so with applying any motion plan on arm \#1 only will result with "no solution" answer. It is obvious that arm \#2 needs to clear the way and the only option is to move counter-clockwise (moving clockwise is impassible due to the obstacle). 
+
+
+
+\begin{figure}[t]
+    \centering
+    \begin{subfigure}[b]{0.3\textwidth}
+    		\centering
+        \includegraphics[width=0.8\textwidth]{initial_configuration}
+        \caption{Initial configuration of the arms, goal of arm \#1 is dashed \\ }
+        \label{fig:initial_configuration}
+    \end{subfigure}
+    ~
+    \begin{subfigure}[b]{0.3\textwidth}
+    		\centering
+        \includegraphics[width=0.8\textwidth]{breaking_point}
+        \caption{A configuration of a "breaking point" from which the goal is reachable for a single arm task}
+        \label{fig:breaking_point}
+    \end{subfigure}  
+    ~
+    \begin{subfigure}[b]{0.3\textwidth}
+    		\centering
+        \includegraphics[width=0.8\textwidth]{final_configuration}
+        \caption{Final configuration: goal achieved \\ ~~\\~~ }
+        \label{fig:final_configuration}
+    \end{subfigure}
+
+    \caption{A multi arm problem configuration consist of 2 arms with 1 DoF each together with an obstacle (grey rectangle) that limits arm \#2 motion. In order to acheive the goal (figure c) a breaking point (figure b) must be acheived first. }\label{fig:local_minima_example}
+\end{figure}
+
+
+
 
 \newpage
 \input{ResearchProgram}
