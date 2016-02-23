@@ -9,13 +9,7 @@ This chapter is about defining the research problems and the ways for solving it
 and
 \item the simulation/experiments that will evaluate a solution performance.
 \end{inparaenum} 
-%\begin{enumerate*}[label=(\alph*)]
-%\item the definition that is used as a basis to define an open problems
-%\item the system requirements for a solution
-%\item the methods for analysing a solution 
-%and
-%\item the simulation/experiments that will evaluate a solution performance.
-%\end{enumerate*} 
+ 
 
  
 
@@ -129,6 +123,7 @@ In order to validate the capabilities of any algorithm we should assess two majo
 
 
 \subsection{Simulation and Experiments}
+\label{section:sim_and_exp}
 
 Any design of planning algorithm that implements phase 1 and 2 of section \ref{section:algorithm_development}) will be tested under simulation and experiments, this in order to present its capabilities of displacing an object using multiple arms. The simulation code will be written under MATLAB environment which later on will be re-written with c++ in order to handle the experiments under GAZEBO/ROS framework. Although GAZEBO is a 3D simulation it holds behind a dynamics engine that calculates the physics of solid parts in terms of equation of motion and interacting forces (between two parts). This means GAZEBO can be used as a experiments environment where we can test scenarios consist of as many robot arms as we need. 
 
