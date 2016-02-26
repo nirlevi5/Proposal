@@ -1,6 +1,6 @@
 \select@language {english}
-\contentsline {figure}{\numberline {1}{\ignorespaces Assembly lines in the automotive industry\relax }}{3}
-\contentsline {figure}{\numberline {2}{\ignorespaces Case study Visualization\relax }}{11}
-\contentsline {figure}{\numberline {3}{\ignorespaces Generating a sequence of arms and transfer points\relax }}{14}
-\contentsline {figure}{\numberline {4}{\ignorespaces A multi arm problem configuration consist of 2 arms with 1 DoF each together with an obstacle (grey rectangle) that limits arm \#2 motion. In order to acheive the goal (figure c) a breaking point (figure b) must be acheived first. \relax }}{16}
-\contentsline {figure}{\numberline {5}{\ignorespaces Time table\relax }}{16}
+\contentsline {figure}{\numberline {1}{\ignorespaces Assembly lines in the automotive industry\relax }}{2}
+\contentsline {figure}{\numberline {2}{\ignorespaces A setup illustration of 5 robotic arms together with a single object\relax }}{10}
+\contentsline {figure}{\numberline {3}{\ignorespaces Generating a sequence of arms and transfer points\relax }}{13}
+\contentsline {figure}{\numberline {4}{\ignorespaces Two setups for complexity demonstration. On both cases arm \#1 is the \textit {transfer} arm and the object is marked by $\DOTSB \bigotimes@ \slimits@ $.\relax }}{16}
+\contentsline {figure}{\numberline {5}{\ignorespaces Time table\relax }}{18}

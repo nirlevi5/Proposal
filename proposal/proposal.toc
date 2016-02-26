@@ -1,16 +1,15 @@
 \select@language {english}
-\contentsline {section}{\numberline {1}Introduction}{3}
-\contentsline {section}{\numberline {2}Literature Review}{4}
-\contentsline {subsection}{\numberline {2.1}Motion Planning}{4}
-\contentsline {subsection}{\numberline {2.2}Task and Motion Planning}{5}
-\contentsline {section}{\numberline {3}Methodology}{6}
-\contentsline {subsection}{\numberline {3.1}Research Problem Description}{6}
-\contentsline {subsection}{\numberline {3.2}Algorithm Development}{8}
-\contentsline {subsection}{\numberline {3.3}Algorithm Analysis}{9}
-\contentsline {subsection}{\numberline {3.4}Simulation and Experiments}{9}
-\contentsline {section}{\numberline {4}Preliminary Results}{11}
-\contentsline {subsection}{\numberline {4.1}Case Study}{11}
-\contentsline {subsection}{\numberline {4.2}Problem Formulation}{11}
-\contentsline {subsection}{\numberline {4.3}Planning Logic}{12}
-\contentsline {subsection}{\numberline {4.4}Planning Process}{13}
-\contentsline {section}{\numberline {5}Research Program}{16}
+\contentsline {section}{\numberline {1}Introduction}{2}
+\contentsline {section}{\numberline {2}Literature Review}{3}
+\contentsline {subsection}{\numberline {2.1}Motion Planning}{3}
+\contentsline {subsection}{\numberline {2.2}Task and Motion Planning}{4}
+\contentsline {section}{\numberline {3}Methodology}{5}
+\contentsline {subsection}{\numberline {3.1}Research Problem Description}{5}
+\contentsline {subsection}{\numberline {3.2}Algorithm Development}{7}
+\contentsline {subsection}{\numberline {3.3}Algorithm Analysis}{8}
+\contentsline {subsection}{\numberline {3.4}Simulation and Experiments}{8}
+\contentsline {section}{\numberline {4}Preliminary Results}{10}
+\contentsline {subsection}{\numberline {4.1}Problem Formulation}{10}
+\contentsline {subsection}{\numberline {4.2}Multi Arm Sequence Planning}{12}
+\contentsline {subsection}{\numberline {4.3}Multi Arm Motion Planning}{14}
+\contentsline {section}{\numberline {5}Research Program}{18}

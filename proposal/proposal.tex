@@ -11,7 +11,11 @@
 \usepackage{paralist}
 
 \usepackage{algorithm}
-\usepackage{algorithmic}
+%\usepackage{algorithmic}
+%\renewcommand{\algorithmicensure}{\textbf{Output:}}
+%\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+
+\usepackage{algpseudocode}
 \renewcommand{\algorithmicensure}{\textbf{Output:}}
 \renewcommand{\algorithmicrequire}{\textbf{Input:}}
 
@@ -34,15 +38,18 @@
 
 \begin{document}
 
-\title{PhD Proposal: \\ Combined Task and Motion Planing for Multi Robotic Arms in Pick/Place Problems}
-
-\author{Nir Levi}
-
-\maketitle
+\input{titlepage}
+%\title{PhD Proposal: \\ Combined Task and Motion Planing for Multi Robotic Arms in Pick/Place Problems}
+%
+%\author{Nir Levi}
+%
+%\maketitle
 
 \newpage
 \tableofcontents
 \listoffigures
+
+
 
 
 \newpage
@@ -71,6 +78,7 @@ Over this chapter we will describe our proposed solution for the multi arms mani
 
 
 \subsection{Problem Formulation}
+\label{section:problem_formulation}
 In this work our intention is to engage a single object pick and place problem using multi manipulators. We will handle the next symbols description for our problem statement. A manipulator will denoted as $A^{m}$ (the $m$'th parameter means the manipulator index) and an object as $B$. We assume to have an initial configuration given by $M$ manipulators  $\mathcal{A}=\{A^{1},A^{2},\dots,A^m, \dots,A^{M}\}$ together with a single movable object. Furthermore we assume that each $A^m$ is given by
 \begin{inparaenum}[\itshape a\upshape)]
 \item configuration space $C^{m}$ which represents the space of the arm joints value $c^{m} = \begin{bmatrix} q^{m,1} & q^{m,2} & \dots & q^{m,n} & \dots & q^{m,N} \end{bmatrix}^T$ where $q$ expresses a single DoF, and
@@ -97,8 +105,8 @@ Practically, any execution of $\mathcal{S}$ "as is" may not be a accomplished du
 \item A sequence of $K$ paths $\mathcal{Q}$ that represent the motion of all the arms at each step of $\mathcal{S}$ (i.e the \textit{manipulation} path).  
 \end{enumerate}
 
-\subsection{High Level Planning}
-
+\subsection{Multi Arm Sequence Planning}
+\label{section:high_level}
 As detailed, a \textit{manipulation} path is built by a sequence of pick and place operations which in nature defines a sequence of subtasks. Thus, for convenience we will use the term subtask to denote the $k$'th procedure in $\mathcal{Q}$. Being able to solve each subtask separately simplifies the problem to a single arm pick and place solution. Still, this advantage makes no guaranties for solving the overall task unless a binding condition will be made between two following subtasks. Such a criteria is built by the \textit{transfer point} terminology.  
 
 We let $\mathcal{T}^B$ be the object absolute path from its initial to goal position. By definition, each subtask moves the object along a portion of $\mathcal{T}^B$. Hence, we can reason that $\mathcal{T}^B$ is built up by a sequence of \textit{work-space} paths each handled on the $k$'th subtask by a different arm, thus $\mathcal{T}^B = \langle T^{B,1},...,T^{B,k},...,T^{B,K} \rangle $. We will denote a \textit{transfer point} as a position where any $T^{B,K}$ starts or ends. Tentatively any \textit{transfer point} is located where an object is being picked or placed by a transferring arm. Any sequence $S$ consist of $K$ arms will have to pass through $K+1$ \textit{Transfer Points Series} ($TPS$) where the first and the last points represents the initial and final state of the object respectively. 
@@ -142,7 +150,7 @@ Recalling the work of Koga and Latombe \cite{koga1994multi}, it is shown that th
 \subsubsection*{Search for Arm Sequence and Transfer Points}
 
 One of the key component of our work is find any pair of arms sharing together a part of their workspace such that $W^i \cap W^j \neq \emptyset$. This fact gives an insight for any transfer that could appear. Representing this data is made by using a graph where nodes represents an arm workspace and arcs represents a shared workspace between two arms. It means that a setup consist of $M$ arms is interpreted by a graph with $M$ nodes. Adding the graph arcs is applied by 
-going throw any possible combination of two arms and check whether together they share a part of their workspace. The generation of this graph will tentatively be called the \textit{connectivity graph}. An example illustration of such a graph is given in figure \ref{fig:connectivity_graph}.
+going throw any possible combination of two arms and check whether together they share a part of their workspace. A generation of this graph will tentatively be called the \textit{connectivity graph} (example illustration is given in figure \ref{fig:connectivity_graph}).
 
 By attributing the initial and goal position of the object ($B^{init}$ and $B^{goal}$) to one of the arms work space we can reason about the starting and final node in the \textit{connectivity graph}. At this point, any graph search would give a solution with a form of a sequence of arms index $\mathcal{S} = \langle s^1,...,s^k,...,s^K \rangle$ connected by their shared workspaces (as shown in figure \ref{fig:task_assignment}) such that:
 \begin{equation}
@@ -158,37 +166,48 @@ W^{\mathcal{S}(k)}\cap W^{\mathcal{S}(k+1)}\neq \emptyset
 To complete the algorithm first phase we still have to determine the positions of the \textit{transfer point series}. As shown in figure \ref{fig:transfer_points} we can detect that any \textit{transfer point} is located in the shared work space of any two successive arms in $\mathcal{S}$. Still, we have to determine the exact position in the shared work space. One option is to use a linear programming method to minimize the total length accepted by connecting any pair of successive \textit{transfer point} by a straight line. In our implementation we choose a more straight forward method and selected the center of area of the shared workspace.
 
 
-\subsubsection*{The Search Algorithm}
+\subsubsection*{MASP Algorithm}
 Algorithm \ref{alg:main-loop} shows the main procedure for generating a solution. Here, lines 1-5 represents the first phase of the algorithm for calculating the transfer arms and transfer points where line 6 represent the motion planing phase. 
 
-To generate an actual sequence that will apply the condition as in equations \eqref{eq:kinematic-feasible}-\eqref{eq:no-collision} we will have to go through the steps as written in algorithm \ref{alg:main-loop}. The rationale behind this algorithm is first to find a sequence of arms $S$ together with a series of $transfer~points$ $tp$ that will settle with equation \eqref{eq:consistant-sequence} (lines 1-5). Next, when $S$ and $tp$ was determined the guidelines for a motion plan was resolved, thus the second phase of the algorithm was launched (line 6) in order to calculate the sequence path that meet equations \eqref{eq:kinematic-feasible} and \eqref{eq:no-collision}. 
-
 \begin{algorithm}
-\caption{Main Loop} \label{alg:main-loop}
+\caption{Mוulti Arm Sequence Planning} \label{alg:main-loop}
 \begin{algorithmic}  [1] % the [1] is for numbering
-\REQUIRE $B^{init},B^{goal},\mathcal{A}$
-\ENSURE $\mathcal{Q}$
-	\STATE $cg\leftarrow$ Generate $ConnectivityGraph\left(\mathcal{A}\right)$
-	\STATE $W^{first}\leftarrow $ find($W^{first}$ such that $B^{init}\in W^{first}$)
-	\STATE $W^{last}\leftarrow $ find($W^{last}$ such that $B^{goal}\in W^{last}$)
-	\STATE $\mathcal{S}\leftarrow$ BFS$( cg,W^{first},W^{last})$ // generate ws sequence
-	\STATE $TPS\leftarrow$ Calc $TransferPointsSeries\left(\mathcal{S},B^{init},B^{goal}\right)$
-\STATE $\mathcal{T}^A \leftarrow CalcSequenceTrajectory( S,tp,q^{init})$
+\Require $B^{init},B^{goal},\mathcal{A}$
+\Ensure $\mathcal{Q}$
+\State $cg\leftarrow$ Generate $ConnectivityGraph\left(\mathcal{A}\right)$
+\State $W^{first}\leftarrow $ find($W^{first}$ such that $B^{init}\in W^{first}$)
+\State $W^{last}\leftarrow $ find($W^{last}$ such that $B^{goal}\in W^{last}$)
+\State $\mathcal{S}\leftarrow$ BFS$( cg,W^{first},W^{last})$ // generate ws sequence
+\State $TPS\leftarrow$ Calc $TransferPointsSeries\left(\mathcal{S},B^{init},B^{goal}\right)$
+\State Subtask\_Sequence $\leftarrow$ \textit{GenerateSubtasksSequence}(TPS,S)
+
 \end{algorithmic}
 \end{algorithm}
 
 
 \subsection{Multi Arm Motion Planning}
-As stated, at this stage our goal is to calculate the arms path for each phase of the \textit{manipulation-path} represented by $\mathcal{T}^A$. We assume that each phase includes the following input parameters (and that the initial configuration of the total arms is known):
+This section, as a part of the whole process will explain our result in calculating a collision free \textit{manipulation} path for each of the arms. As declared in section \ref{section:high_level} using the MASP algorithm our problem is formalized as a sequence of single arms subtasks. Still, a single arm motion planner is not applicable on a multi arm scenario and multi arm motion planner is highly complex to solve with large number of arms. This conclusion focused our efforts to find a solution for the multi arm path finding problem planned with a reasonable amount of time. 
 
+
+In our problem the overall goal is to find a multi arm trajectory for each of the subtasks extracted by the MASP algorithm. We will start by formulate a general subtask given by the next input definition:
 \begin{itemize}
-	\item Index of the moving arm.
-	\item Initial and goal positions of the arms gripper
+	\item A set of arms given by its initial configuration.
+	\item An index of the transferring arm.
+	\item Initial and final positions of the movable object.
 \end{itemize}
+Next, we will use the assumptions as detailed in \ref{section:problem_description} problem 1 to denote that 
+\begin{itemize}
+\item There are two types of obstacles: the arms themselves and the objects.
+\end{itemize}
+This all means that we will expect for collision only between a pair of arms nor a pair of arm and object (exclude the transfer arm). As previously defined any subtask is obligated to a single arm pick and place operation no matter the number of arms in the set. An interesting cases emerge when only few arms obstructs the \textit{transfer} arm way, this notion simplifies the solution by planning with less DoF which drastically reduce computation time. 
 
-These parameters directs us to find a motion planning solution for a multi robot system. As mentioned in section \ref{section:motion_planning} there is no formal strategy for calculating optimal nor complete trajectory for multi robots except for using \textit{centralized} methods that suffers from exponential complexity. The pattern that we will next describe is a method that is designed to find a solution oriented for robotic arms but may still be used for other systems. 
+An illustration of the problem is given in figure \ref{fig:two_setups_demo} where a the same task is given by three different setups distinct by the number and position of the arms. Examine figure \ref{fig:two_arm_scenario} we find that the target is to move arm \#1 to the object (final configuration is given by the dashed line) where arm \#2 obstruct its direct path. Furthermore, the obstruction happens as arm \#2 is stuck between arm \#1 on the left and the object on the right which makes it impossible to clear arm \#1 path. To overcome the obstruction arm \#1 should move backward (i.e away from the target) in order to clear a space for a new position of arm \#2 from which arm \#1 has a clear path towards the object. Next, examine figure \ref{fig:multi_arm_scenario} we can reason that  the solution applied on figure \ref{fig:two_arm_scenario} is not valid unless arm \#4 will clear the space where arm \#1 is moving backward. In addition, arm \#3 needs to clear a space for arm \#4, arm \#6 needs to clear space for arm \#3 and so on until arm \#9 clears a space for arm \#7. These two examples demonstration visualized the drawbacks of using \textit{decoupled} methods. For example by using \textit{prioritize planning} we might associate arm \#1 with the highest priority in the set which will obviously end up with no solution. Next, figure \ref{fig:no_need_centralized} expose the the drawbacks of using \textit{centralized} methods that will plan a path for 9 arms instead for only two (which seriously increase computation time).
 
-The fact that a \textit{centralized} method includes complete and optimal attributes is that it can handle local minima's (same as A*). Lack in such feature resolved in having no reasoning when: robot 2 obstructs the path of robot 1 where actually robot 1 obstructs the path of robot 2 that should clear the path for robot 1. A simple illustration is shown in figure \ref{fig:initial_configuration} with a case of 2 robotic arms having 1 DoF each. The task here is to move arm \#1 to the dashed line. Trying to do so with applying any motion plan on arm \#1 only will result with "no solution" answer. It is obvious that arm \#2 needs to clear the way and the only option is to move counter-clockwise (moving clockwise is impassible due to the obstacle). 
+These three examples spans the drawback of the two planning approaches with application on multi robot arms. Over the next section we will show our Multi Arm Motion Planning (MAMP) scheme which attributed by yhe next two requirements:
+\begin{itemize}
+\item Changing priority when needed.
+\item Plan a path for moving arms only.
+\end{itemize}
 
 
 
@@ -196,30 +215,90 @@ The fact that a \textit{centralized} method includes complete and optimal attrib
     \centering
     \begin{subfigure}[b]{0.3\textwidth}
     		\centering
-        \includegraphics[width=0.8\textwidth]{initial_configuration}
-        \caption{Initial configuration of the arms, goal of arm \#1 is dashed \\ }
-        \label{fig:initial_configuration}
+        \includegraphics[width=0.43\textwidth]{TwoArmSingleJoint}
+        \caption{A setup consist of two arms with single DoF each.}
+        \label{fig:two_arm_scenario}
     \end{subfigure}
-    ~
+    ~~
     \begin{subfigure}[b]{0.3\textwidth}
     		\centering
-        \includegraphics[width=0.8\textwidth]{breaking_point}
-        \caption{A configuration of a "breaking point" from which the goal is reachable for a single arm task}
-        \label{fig:breaking_point}
+        \includegraphics[width=0.7\textwidth]{MultiArmSingleJoint}
+        \caption{A setup consist of 9 arms with single DoF each.}
+        \label{fig:multi_arm_scenario}
+    \end{subfigure} 
+    ~~
+    \begin{subfigure}[b]{0.3\textwidth}
+    		\centering
+        \includegraphics[width=0.88\textwidth]{no_need_centralized}
+        \caption{A setup consist of 9 arms with single DoF each.}
+        \label{fig:no_need_centralized}
     \end{subfigure}  
-    ~
-    \begin{subfigure}[b]{0.3\textwidth}
-    		\centering
-        \includegraphics[width=0.8\textwidth]{final_configuration}
-        \caption{Final configuration: goal achieved \\ ~~\\~~ }
-        \label{fig:final_configuration}
-    \end{subfigure}
-
-    \caption{A multi arm problem configuration consist of 2 arms with 1 DoF each together with an obstacle (grey rectangle) that limits arm \#2 motion. In order to acheive the goal (figure c) a breaking point (figure b) must be acheived first. }\label{fig:local_minima_example}
+    \caption{Two setups for complexity demonstration. On both cases arm \#1 is the \textit{transfer} arm and the object is marked by $\bigotimes$.}
+    \label{fig:two_setups_demo}
 \end{figure}
 
 
+\subsubsection*{Planning logic}
+Here, we will analyse the logic stands behind our planning scheme. As we will see it is build up by the same principles of \textit{decoupled} planning approach with the essence of \textit{prioritized} method. By resolving each subtask we find that it associate with only a single arm (e.g \textit{transfer arm}). In fact this is the key feature that guides our search, as we can assume that only a single arm gets the highest priority while all the other are non-prioritized. As shown in the examples of figure \ref{fig:two_arm_scenario} associate only the transfer arm with the highest priority wont find a solution. Still, changing the priority to the obstruct arm means nothing without having a feasible target. Hence, in order to depict a procedure of changing priority it has to come with adding a target.   
 
+Clearly, any new target associated to a non-transfer arms will be subjected to "clear the path of the transfer arm". Such a scheme expands hierarchy of targets belongs each time to a different prioritized arm. For example, the hierarchy of targets in figure \ref{fig:two_arm_scenario} will be then:
+\begin{enumerate}
+\item priority: arm \#2, target: clear arm \#1 path.
+\item priority: arm \#1, target: go to object.
+\end{enumerate}
+As we will see, expanding the hierarchy of targets is useless unless each target is represented by position. This means that besides of changing priority we have to reason about the positions that is actually applies for the target meanings.
+
+As prioritized hierarchy principle stands for acquiring valid solutions we still have to generate the arms motion. recall that one of the planner requirements is to generate motion for the moving arms only, but how can we know which is the moving arms before applying the motions. Again, to overcome, we will use the same key feature that gives priority for a single arm only to classify each arm with two rules: a \textit{master} and a \textit{slave}. Contrary to flocks behaviour, here a \textit{slave} arm implies for avoiding any collision with the \textit{master} arm. Naturally, such a description may resolved by artificial potential field methods which will be discussed in the MAMP algorithm section. 
+
+Both \textit{prioritized hierarchy} and \textit{master/slave} attributes have inspired the logic behind the MAMP algorithm. Over the next sections we will show how together those attributes interact and forms the algorithm design.
+
+
+\subsubsection*{Motion Generation}
+
+Recall that one of our major goals was being able to find fast solution. With this sense, the trade off for planning fast is to apply a \textit{decoupled} methods. In fact, being able to plan fast was our driven motor for choosing a motion planner (generate a new technique was never our goal). Thus, any motion was generated using a specified artificial potential field together with steepest decent concept, this way we could plan fast with high number of DoF.
+
+As already been said any \textit{slave arm} is subjected to the motion of the \textit{master} arm. By this assumption we define two motion modes: \textit{attractive} and \textit{repulsive}. An \textit{attractive} mode is dedicated to attract the \textit{master} arm to the target and \textit{repulsive} mode is dedicated to remove a \textit{slave arm} from a \textit{master arm} path. Respectively, an \textit{attractive} potential field is calculated as distance from the object to the \textit{master arm} gripper and \textit{repulsive} potential field is calculated as a function of the minimal distance between a pair of \textit{master} and \textit{slave} arms. 
+
+
+\subsubsection*{MAMP Algorithm}
+Here we will show how to u
+
+\begin{algorithm}
+\caption{Mוulti Arm Motion Planning} \label{alg:MAMP}
+\begin{algorithmic}  [1] % the [1] is for numbering
+\Require \textit{subtask}, $\mathcal{A}$
+\Ensure $\mathcal{Q}$
+
+\State \textit{target\_queue} $\leftarrow$ init\_target\_queue(\textit{subtask})
+\While {\textbf{size}(\textit{target\_queue})$\geq 0$}
+	\State $P\leftarrow$ Find \textit{attractive} Path(target\_queue(1))
+	\State $O\leftarrow$ Verify \textit{obstruct} Arms($P$)
+	\If {No Arms Obstructs}
+		\State $\mathcal{Q}$.push\_back(P)
+		\State \textit{target\_queue}.remove(1)
+	\Else
+		\State $P\leftarrow$ reverse($P$)
+		\State $O\leftarrow$ Verify \textit{obstruct} Arms($P$)
+		\State \textit{target\_queue}.push\_front($O$)
+	\EndIf
+\EndWhile
+
+\end{algorithmic}
+\end{algorithm}
+
+הסיבה למה לןקח המון זמן לחישוב
+שימוש בפונקציית דחיפה
+שימוש בגיאומטריה שיש לזרועות
+הסיבה והדרך להשגת מטרות חדשות
+דרך היררכית
+חישוב התנגשות
+
+mamp algorithm
+move algorithm
+verify algorithm
+
+דוגמאת הרצה
+איך נראה מרחב הקונפיגורציה
 
 \newpage
 \input{ResearchProgram}
